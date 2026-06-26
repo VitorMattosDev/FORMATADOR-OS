@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Formatador de Ordem de Serviço</title>
+<style>
+  :root{
+    --bg:#eaf0f3;
+    --card:#ffffff;
+    --ink:#16202e;
+    --muted:#65788a;
+    --line:#dde5ec;
+    --teal:#0d9488;
+    --teal-bright:#14b8a6;
+    --readout:#0a1422;
+    --readout-line:#1c3047;
+    --signal:#22e0c8;
+    --paper:#f3f7f9;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    padding:28px 16px 56px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{width:100%;max-width:620px}
+
+  header{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+  .dot{
+    width:11px;height:11px;border-radius:50%;
+    background:var(--signal);
+    box-shadow:0 0 0 4px rgba(34,224,200,.18);
+    flex:none;
+    animation:pulse 2.4s ease-in-out infinite;
+  }
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+  header h1{font-size:17px;font-weight:650;letter-spacing:-.2px;margin:0}
+  header .sub{font-size:12.5px;color:var(--muted);margin:2px 0 0}
+
+  .card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:20px;
+    box-shadow:0 1px 2px rgba(20,40,60,.04),0 8px 24px rgba(20,40,60,.05);
+  }
+
+  .row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+  .field{flex:1;min-width:150px}
+  label{display:block;font-size:11.5px;font-weight:600;letter-spacing:.4px;
+        text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+  input[type=text],textarea{
+    width:100%;border:1px solid var(--line);border-radius:10px;
+    background:var(--paper);color:var(--ink);
+    font:inherit;font-size:15px;padding:11px 12px;outline:none;
+    transition:border-color .15s,box-shadow .15s;
+  }
+  input[type=text]:focus,textarea:focus{
+    border-color:var(--teal-bright);
+    box-shadow:0 0 0 3px rgba(20,184,166,.16);
+  }
+  textarea{resize:vertical;min-height:96px;line-height:1.45}
+
+  .switch-wrap{display:flex;align-items:flex-end}
+  .switch{display:inline-flex;align-items:center;gap:9px;cursor:pointer;
+          font-size:13.5px;color:var(--ink);user-select:none;padding-bottom:1px}
+  .switch input{position:absolute;opacity:0;pointer-events:none}
+  .track{width:40px;height:23px;border-radius:99px;background:#cfd9e1;
+         position:relative;transition:background .18s;flex:none}
+  .track::after{content:"";position:absolute;top:2.5px;left:2.5px;width:18px;height:18px;
+         border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);
+         transition:transform .18s}
+  .switch input:checked + .track{background:var(--teal)}
+  .switch input:checked + .track::after{transform:translateX(17px)}
+
+  .presets{margin:14px 0 2px}
+  .presets .lbl{font-size:11.5px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;
+                color:var(--muted);margin-bottom:8px;display:block}
+  .preset-grid{display:flex;flex-direction:column;gap:8px}
+  .preset{display:flex;align-items:center;gap:10px;text-align:left;width:100%;
+          background:var(--paper);border:1px solid var(--line);color:var(--ink);
+          padding:11px 13px;border-radius:10px;font-size:13.5px;font-weight:500;line-height:1.35}
+  .preset:hover{border-color:var(--teal-bright);background:#eefaf8}
+  .preset .ico{flex:none;width:26px;height:26px;border-radius:7px;background:var(--teal);
+               color:#fff;display:grid;place-items:center;font-size:14px}
+  .preset.done{border-color:var(--teal);background:#e6f7f4}
+
+  .clock{font-size:12.5px;color:var(--muted);margin:2px 0 14px;display:flex;
+         align-items:center;gap:7px}
+  .clock b{color:var(--teal);font-variant-numeric:tabular-nums;font-weight:600}
+
+  .readout{
+    background:var(--readout);
+    border:1px solid var(--readout-line);
+    border-radius:12px;
+    padding:16px 16px 14px;
+    font-family:ui-monospace,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+    font-size:14px;line-height:1.55;
+    word-break:break-word;white-space:pre-wrap;
+    color:#e8f1f1;
+  }
+  .readout .pre{color:var(--signal)}
+  .readout .body{color:#fff}
+  .readout .ph{color:#5e7488;font-style:italic}
+
+  .actions{display:flex;gap:10px;margin-top:14px}
+  button{font:inherit;border:none;border-radius:11px;cursor:pointer;
+         font-weight:600;font-size:14.5px;transition:transform .08s,background .15s,color .15s}
+  button:active{transform:translateY(1px)}
+  .copy{flex:1;background:var(--teal);color:#fff;padding:13px}
+  .copy:hover{background:var(--teal-bright)}
+  .copy.done{background:#0f766e}
+  .clear{background:var(--paper);color:var(--muted);padding:13px 16px;border:1px solid var(--line)}
+  .clear:hover{color:var(--ink);border-color:#c6d2db}
+
+  .hint{font-size:12px;color:var(--muted);margin-top:11px;text-align:center}
+  kbd{font-family:ui-monospace,monospace;font-size:11px;background:var(--paper);
+      border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:1px 5px}
+
+  .history{margin-top:22px}
+  .history h2{font-size:11.5px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;
+              color:var(--muted);margin:0 0 10px}
+  .hist-item{display:flex;align-items:center;gap:10px;background:var(--card);
+             border:1px solid var(--line);border-radius:11px;padding:10px 12px;margin-bottom:8px}
+  .hist-text{flex:1;min-width:0;font-family:ui-monospace,monospace;font-size:12.5px;
+             color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .hist-copy{background:transparent;border:1px solid var(--line);color:var(--teal);
+             padding:6px 10px;font-size:12.5px;border-radius:8px;flex:none}
+  .hist-copy:hover{background:var(--paper)}
+  .empty{font-size:12.5px;color:var(--muted);font-style:italic}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="dot"></span>
+    <div>
+      <h1>Formatador de Ordem de Serviço</h1>
+      <p class="sub">Carimbo automático com data e hora de Brasília</p>
+    </div>
+  </header>
+
+  <div class="card">
+    <div class="row">
+      <div class="field">
+        <label for="nome">Responsável</label>
+        <input type="text" id="nome" value="VITOR" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="field switch-wrap">
+        <label class="switch">
+          <input type="checkbox" id="upper" checked>
+          <span class="track"></span>
+          <span>MAIÚSCULAS</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="texto">Atualização</label>
+      <textarea id="texto" placeholder="Ex.: Caixa postal. Mandei mensagem no Whats. Aguardando resposta" autofocus></textarea>
+    </div>
+
+    <div class="presets">
+      <span class="lbl">Mensagens rápidas</span>
+      <div class="preset-grid">
+        <button class="preset" data-msg="ENTREI EM CONTATO POR WHATSAPP. AGUARDANDO RESPOSTA">
+          <span class="ico">✆</span>Entrei em contato por WhatsApp. Aguardando resposta
+        </button>
+        <button class="preset" data-msg="ENTREI EM CONTATO POR LIGAÇÃO. AGUARDANDO RESPOSTA">
+          <span class="ico">☎</span>Entrei em contato por ligação. Aguardando resposta
+        </button>
+      </div>
+    </div>
+
+    <div class="clock">Horário de Brasília: <b id="clock">--/--/---- --:--</b></div>
+
+    <div class="readout" id="readout"></div>
+
+    <div class="actions">
+      <button class="copy" id="copy">Copiar</button>
+      <button class="clear" id="clear" title="Limpar texto">Limpar</button>
+    </div>
+    <p class="hint">A data/hora é capturada no momento em que você copia · <kbd>Ctrl</kbd> + <kbd>Enter</kbd> copia</p>
+  </div>
+
+  <div class="history">
+    <h2>Gerados nesta sessão</h2>
+    <div id="histList"><p class="empty">Nada gerado ainda.</p></div>
+  </div>
+</div>
+
+<script>
+  const $ = id => document.getElementById(id);
+  const nome = $('nome'), texto = $('texto'), upper = $('upper');
+  const readout = $('readout'), clockEl = $('clock');
+  const copyBtn = $('copy'), clearBtn = $('clear'), histList = $('histList');
+
+  function stamp(date = new Date()){
+    const p = new Intl.DateTimeFormat('pt-BR',{
+      timeZone:'America/Sao_Paulo',
+      day:'2-digit',month:'2-digit',year:'numeric',
+      hour:'2-digit',minute:'2-digit',hour12:false
+    }).formatToParts(date).reduce((a,x)=>(a[x.type]=x.value,a),{});
+    return `${p.day}/${p.month}/${p.year} ${p.hour}:${p.minute}`;
+  }
+
+  function prefix(){
+    const n = (nome.value.trim() || 'RESPONSÁVEL').toUpperCase();
+    return `-> ${n} | ${stamp()} -`;
+  }
+
+  function bodyText(){
+    let t = texto.value.trim();
+    return upper.checked ? t.toUpperCase() : t;
+  }
+
+  function fullMessage(){
+    const b = bodyText();
+    return prefix() + (b ? ' ' + b : '');
+  }
+
+  function escapeHtml(s){
+    return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  }
+
+  function renderPreview(){
+    const b = bodyText();
+    readout.innerHTML =
+      `<span class="pre">${escapeHtml(prefix())}</span> ` +
+      (b ? `<span class="body">${escapeHtml(b)}</span>`
+         : `<span class="ph">digite a atualização acima…</span>`);
+  }
+
+  function tick(){ clockEl.textContent = stamp(); renderPreview(); }
+
+  // copy with fallback for sandboxed iframes
+  function copyText(str){
+    if (navigator.clipboard && window.isSecureContext){
+      return navigator.clipboard.writeText(str).catch(()=>fallbackCopy(str));
+    }
+    return Promise.resolve(fallbackCopy(str));
+  }
+  function fallbackCopy(str){
+    const ta = document.createElement('textarea');
+    ta.value = str; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    try{ document.execCommand('copy'); }catch(e){}
+    document.body.removeChild(ta);
+  }
+
+  function pushHistory(msg){
+    if (histList.querySelector('.empty')) histList.innerHTML = '';
+    const item = document.createElement('div');
+    item.className = 'hist-item';
+    const span = document.createElement('div');
+    span.className = 'hist-text'; span.textContent = msg; span.title = msg;
+    const b = document.createElement('button');
+    b.className = 'hist-copy'; b.textContent = 'Copiar';
+    b.onclick = () => { copyText(msg); b.textContent='Copiado!'; setTimeout(()=>b.textContent='Copiar',1200); };
+    item.appendChild(span); item.appendChild(b);
+    histList.prepend(item);
+  }
+
+  function doCopy(){
+    const msg = fullMessage();
+    copyText(msg).then(()=>{
+      copyBtn.textContent = 'Copiado!'; copyBtn.classList.add('done');
+      setTimeout(()=>{ copyBtn.textContent='Copiar'; copyBtn.classList.remove('done'); }, 1400);
+      pushHistory(msg);
+    });
+  }
+
+  copyBtn.addEventListener('click', doCopy);
+
+  document.querySelectorAll('.preset').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      texto.value = btn.dataset.msg;
+      renderPreview();
+      const msg = fullMessage();
+      copyText(msg).then(()=>{
+        pushHistory(msg);
+        const ico = btn.querySelector('.ico'); const old = ico.textContent;
+        btn.classList.add('done'); ico.textContent = '✓';
+        copyBtn.textContent = 'Copiado!'; copyBtn.classList.add('done');
+        setTimeout(()=>{
+          btn.classList.remove('done'); ico.textContent = old;
+          copyBtn.textContent = 'Copiar'; copyBtn.classList.remove('done');
+        }, 1400);
+      });
+    });
+  });
+  clearBtn.addEventListener('click', ()=>{ texto.value=''; texto.focus(); renderPreview(); });
+  [nome, texto].forEach(el=>el.addEventListener('input', renderPreview));
+  upper.addEventListener('change', renderPreview);
+  document.addEventListener('keydown', e=>{
+    if ((e.ctrlKey||e.metaKey) && e.key==='Enter'){ e.preventDefault(); doCopy(); }
+  });
+
+  tick();
+  setInterval(tick, 1000);
+</script>
+</body>
+</html>
