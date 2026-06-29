@@ -141,9 +141,18 @@
   .day .dt{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;margin-top:3px}
   .day.done{border-color:var(--teal);background:#e6f7f4}
   .day.done .num{color:var(--teal)}
-  .pay-out{margin-top:15px;background:var(--readout);border:1px solid var(--readout-line);
+  .pay-field{margin-top:14px}
+  .pay-field-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+  .pf-tag{font-size:11px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;color:var(--muted)}
+  .field-copy{background:var(--paper);border:1px solid var(--line);color:var(--teal);
+       padding:5px 12px;font-size:12.5px;font-weight:600;border-radius:8px}
+  .field-copy:hover{background:#eefaf8;border-color:var(--teal-bright)}
+  .field-copy.done{background:var(--teal);color:#fff;border-color:var(--teal)}
+  .field-copy:disabled{opacity:.45;cursor:default}
+  .pay-out{background:var(--readout);border:1px solid var(--readout-line);
        border-radius:12px;padding:15px 16px;color:#e8f1f1;font-size:14px;line-height:1.55;
        min-height:22px;word-break:break-word}
+  .pay-out.obs{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;color:var(--signal);font-size:13.5px}
   .pay-out .ph{color:#5e7488;font-style:italic;font-size:13px}
 
   .history{margin-top:22px}
@@ -221,7 +230,22 @@
       </div>
     </div>
     <div class="day-grid" id="dayGrid"></div>
-    <div class="pay-out" id="payOut"><span class="ph">A mensagem aparece aqui ao escolher um dia.</span></div>
+
+    <div class="pay-field">
+      <div class="pay-field-head">
+        <span class="pf-tag">Mensagem ao cliente</span>
+        <button class="field-copy" id="copyPayMsg" disabled>Copiar</button>
+      </div>
+      <div class="pay-out" id="payOut"><span class="ph">Escolha um dia acima.</span></div>
+    </div>
+
+    <div class="pay-field">
+      <div class="pay-field-head">
+        <span class="pf-tag">Observação · financeiro</span>
+        <button class="field-copy" id="copyPayObs" disabled>Copiar</button>
+      </div>
+      <div class="pay-out obs" id="payObs"><span class="ph">Escolha um dia acima.</span></div>
+    </div>
   </div>
 
   <div class="history">
@@ -339,7 +363,9 @@
 
   // ---- Mensagem de pagamento ----
   const PAY_DAYS = [5, 10, 15, 18, 20, 25, 28, 30];
-  const dayGrid = $('dayGrid'), payOut = $('payOut');
+  const dayGrid = $('dayGrid'), payOut = $('payOut'), payObs = $('payObs');
+  const copyPayMsg = $('copyPayMsg'), copyPayObs = $('copyPayObs');
+  let curMsg = '', curObs = '';
 
   function brasiliaParts(){
     const p = new Intl.DateTimeFormat('en-CA',{
@@ -357,10 +383,28 @@
     return { y, m, day, str:`${pad(day)}/${pad(m)}/${y}` };
   }
 
-  function payMessage(day){
+  function selectDay(day, btn){
     const d = resolveDate(day).str;
-    return `O pagamento está agendado para o dia ${d}, respeitando o prazo máximo de 20 dias.✅ Até a próxima💙`;
+    curMsg = `O pagamento está agendado para o dia ${d}, respeitando o prazo máximo de 20 dias.✅ Até a próxima💙`;
+    curObs = `- AGUARDAR ATÉ ${d}`;
+    payOut.textContent = curMsg;
+    payObs.textContent = curObs;
+    copyPayMsg.disabled = false; copyPayObs.disabled = false;
+    dayGrid.querySelectorAll('.day').forEach(b=>b.classList.remove('done'));
+    btn.classList.add('done');
   }
+
+  function fieldCopy(btn, getText){
+    const txt = getText();
+    if (!txt) return;
+    copyText(txt).then(()=>{
+      pushHistory(txt);
+      btn.classList.add('done'); btn.textContent = 'Copiado!';
+      setTimeout(()=>{ btn.classList.remove('done'); btn.textContent = 'Copiar'; }, 1400);
+    });
+  }
+  copyPayMsg.addEventListener('click', ()=>fieldCopy(copyPayMsg, ()=>curMsg));
+  copyPayObs.addEventListener('click', ()=>fieldCopy(copyPayObs, ()=>curObs));
 
   function buildDayButtons(){
     dayGrid.innerHTML = '';
@@ -368,15 +412,7 @@
       const btn = document.createElement('button');
       btn.className = 'day'; btn.dataset.day = day;
       btn.innerHTML = `<span class="num">${day}</span><span class="dt"></span>`;
-      btn.addEventListener('click', ()=>{
-        const msg = payMessage(day);
-        payOut.textContent = msg;
-        copyText(msg).then(()=>{
-          pushHistory(msg);
-          btn.classList.add('done');
-          setTimeout(()=>btn.classList.remove('done'), 1400);
-        });
-      });
+      btn.addEventListener('click', ()=>selectDay(day, btn));
       dayGrid.appendChild(btn);
     });
   }
